@@ -1,6 +1,46 @@
-1. Understanding evaluation scores
-	https://towardsdatascience.com/accuracy-precision-recall-or-f1-331fb37c5cb9
-	Benchmark:
+04/11: First Meeting
+	1. Went through the project requirements
+	2. Created a Github Repository: https://github.com/Brainsanity/VisualCortex_ActorAction.git
+
+	3. Goal before next meeting: (3 days)
+		1) Try out some basic models, e.g., resnet152 + linear	(Bin)
+		2) Read papers and think about possible models
+			Brian:	[2][6]
+			Ruitao:	[1][5]
+			Bin:	[4] & other possible models
+
+
+04/14: Second meeting
+	1. Results of basic models tried
+	2. Explain learned models from papers to others, in terms of our task
+	3. Determine SOME current existing (simplified for classfication) models to replicate
+
+	4. Goal before next meetinng: (2 days)
+		1) Replicate current models to reach the benchmark requirement
+		2) Build new models with some GODD novelty to reach the benchmark requirements
+
+
+04/16: Third meeting (5 days)
+	1. Report on replicated current models (should be successful)
+	2. Report progress of novel models	(should have preliminary results, may not reach the benchmark)
+
+	3. Goal before next meeting:
+		1) Reach the benchmark with novel models
+
+
+04/21: Fourth meeting
+	1. Report on successful novel models
+
+	2. Goal for next meeting: (2 days)
+		1) Finish write & ppt
+
+
+04/23:	Last meeting
+	1. Review & Submit
+
+
+
+Benchmark requirements:
 		Precision: 23.8
 		Recall: 30.5
 		F1: 25.2
