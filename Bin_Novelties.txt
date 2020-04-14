@@ -1,0 +1,50 @@
+AlexNet:
+	Dropout:
+		reduce overfittig
+		in-network ensembling
+
+	Data augmentation:
+		label-preserving transformation of training data
+		reduce overfitting
+
+
+VGG-16/19:
+	"very deep"
+	modularized design
+	stage-wise training: VGG-11 => VGG-13 => VGG-16
+
+
+GoogleNet/Inception v1, v2, v3, ...
+	Multiple branches
+	Shortcuts
+	Bottleneck
+
+
+ResNets:
+	Plain deep nets are difficult to find the opimal solution
+	DeepNets + Identity:
+		If identity were optimal mapping, easy to set weights as 0
+		If optimal mapping was close to identity, easy to find small fluctuations
+		Lower trainning & testing error
+
+
+ResNeXt:
+	uniform multi-branch <=> group-conv
+	Better accuracy
+	Better trade-off for high-capacity models
+
+
+Inception-ResNet
+	Szegedy et al. 2017
+
+DenseNet
+	Huang et al. CVPR 2017
+
+Xception
+	Chollet CVPR 2017
+
+MobileNets
+	Howard et al. 2017
+
+ShuffleNet
+	Zhang et al. 2017
