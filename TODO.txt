@@ -10,17 +10,23 @@
 			Bin:	[4] & other possible models
 
 
-04/14: Second meeting
+04/14: Second meeting (actual meeting date: 04/15)
 	1. Results of basic models tried
 	2. Explain learned models from papers to others, in terms of our task
 	3. Determine SOME current existing (simplified for classfication) models to replicate
 
 	4. Goal before next meetinng: (2 days)
 		1) Replicate current models to reach the benchmark requirement
-		2) Build new models with some GODD novelty to reach the benchmark requirements
+			a. Joint learning of object and action detectors, 2017 (Bin)
+			b. End-to-end joint semantic segmentation of actorsand actions in video, 2018 (Zhexin)
+		2) Build new models with some GODD novelty to reach the benchmark requirements (Ruitao, Bin, Zhexin)
+			a. CAMs (Class Active Mapping)
+				Learning Deep Features for Discriminative Localization. CVPR 2016
+				Visualize what the CNN is looking and how CNN shifts its attention over time
+			b. Attention + ResNet + RPN (Ruitao)
 
 
-04/16: Third meeting (5 days)
+04/17: Third meeting (4 days)
 	1. Report on replicated current models (should be successful)
 	2. Report progress of novel models	(should have preliminary results, may not reach the benchmark)
 
