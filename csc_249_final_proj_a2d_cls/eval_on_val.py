@@ -8,6 +8,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0" # GPU ID
 from torch.utils.data import Dataset, DataLoader
 from cfg.deeplab_pretrain_a2d import train as train_cfg
 from cfg.deeplab_pretrain_a2d import val as val_cfg
+from cfg.deeplab_pretrain_a2d import test as test_cfg
 from network import net
 import time
 from utils.eval_metrics import Precision, Recall, F1
@@ -20,11 +21,11 @@ def main(args):
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    test_dataset = a2d_dataset.A2DDataset(test_cfg, args.dataset_path)
+    test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path)
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
     
     # define load your model here
-    model = #
+    model = net(43).to(device)#
     model.load_state_dict(torch.load(os.path.join(args.model_path, 'net.ckpt')))
     
     X = np.zeros((data_loader.__len__(), args.num_cls))

@@ -48,3 +48,18 @@ MobileNets
 
 ShuffleNet
 	Zhang et al. 2017
+
+
+CAMs (Class Active Mapping)
+	B. Zhou, A. Khosla, A. Lapedriza, A. Oliva, and A. Torralba. Learning Deep Features for Discriminative Localization. CVPR'16
+	visualize what the CNN is looking and how CNN shifts its attention over time
+
+
+Faster R-CNN
+
+
+two-stream Faster R-CNN
+	Joint learning of object and action detectors, ICCV, 2017
+
+
+Conbine two-stream Faster R-CNN with 3D Conv???

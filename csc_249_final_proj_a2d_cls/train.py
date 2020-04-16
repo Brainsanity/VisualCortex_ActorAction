@@ -23,9 +23,15 @@ def main(args):
     data_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=4) # you can make changes
 
     # Define model, Loss, and optimizer
-    model = ###
-    criterion = ###
-    optimizer = ###
+    # model = ###
+    # criterion = ###
+    # optimizer = ###
+    model = net(43).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    # optimizer = torch.optim.SGD( list(model.linear.parameters()) + list(model.bn.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    # optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear.parameters()) + list(model.bn.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    # optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear1.parameters()) + list(model.linear2.parameters()) + list(model.linear3.parameters()) + list(model.bn1.parameters()) + list(model.bn2.parameters()) + list(model.bn3.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
 
     # Train the models
     total_step = len(data_loader)
@@ -39,7 +45,11 @@ def main(args):
 
             # Forward, backward and optimize
             outputs = model(images)
-            loss = criterion(outputs, labels)
+            # loss = criterion(outputs, labels)
+            # loss = - torch.sum( torch.sum( ( nn.LogSoftmax(1)(outputs) * labels ), 1 ) / torch.max( torch.stack( ( torch.sum(labels,1), torch.ones(labels.shape[0]).to(device) ) ), 0 )[0] )
+            loss = torch.sum( (outputs - labels).flatten()**2 )
+            # loss = - torch.sum( torch.sum( ( torch.log(outputs) * labels ), 1 ) / torch.max( torch.stack( ( torch.sum(labels,1), torch.ones(labels.shape[0]).to(device) ) ), 0 )[0] )
+            # loss = - torch.sum( torch.sum( ( torch.log(outputs) * labels ), 1 ) )
             model.zero_grad()
             loss.backward()
             optimizer.step()
@@ -55,6 +65,7 @@ def main(args):
                     args.model_path, 'net.ckpt'))
         t2 = time.time()
         print(t2 - t1)
+        print(outputs)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
