@@ -61,12 +61,7 @@ def main(args):
 
             # Forward, backward and optimize
             outputs = model(images)
-            # loss = criterion(outputs, labels)
-            # loss = - torch.sum( torch.sum( ( nn.LogSoftmax(1)(outputs) * labels ), 1 ) / torch.max( torch.stack( ( torch.sum(labels,1), torch.ones(labels.shape[0]).to(device) ) ), 0 )[0] )
-            # loss = torch.sum( (outputs - labels).flatten()**2 ) / torch.sum(labels.flatten())
             loss = -torch.sum( ( labels * torch.log(outputs) + (1.-labels) * torch.log(1.-outputs) ).flatten() )
-            # loss = - torch.sum( torch.sum( ( torch.log(outputs) * labels ), 1 ) / torch.max( torch.stack( ( torch.sum(labels,1), torch.ones(labels.shape[0]).to(device) ) ), 0 )[0] )
-            # loss = - torch.sum( torch.sum( ( torch.log(outputs) * labels ), 1 ) )
             model.zero_grad()
             loss.backward()
             optimizer.step()

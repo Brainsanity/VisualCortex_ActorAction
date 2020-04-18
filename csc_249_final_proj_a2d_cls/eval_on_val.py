@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_step', type=int, default=10, help='step size for prining log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
     parser.add_argument('--num_cls', type=int, default=43)
-    parser.add_argument('--net', type=str, default='2_attention_map')
+    parser.add_argument('--net', type=str, default='per_class_detection')
     args = parser.parse_args()
 
 main(args)
