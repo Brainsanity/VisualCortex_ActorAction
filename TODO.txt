@@ -19,11 +19,17 @@
 		1) Replicate current models to reach the benchmark requirement
 			a. Joint learning of object and action detectors, 2017 (Bin)
 			b. End-to-end joint semantic segmentation of actorsand actions in video, 2018 (Zhexin)
+			c. Resources
+				https://zhuanlan.zhihu.com/p/31426458
+				https://github.com/jwyang/faster-rcnn.pytorch
+				https://github.com/facebookresearch/detectron2
 		2) Build new models with some GODD novelty to reach the benchmark requirements (Ruitao, Bin, Zhexin)
 			a. CAMs (Class Active Mapping)
 				Learning Deep Features for Discriminative Localization. CVPR 2016
 				Visualize what the CNN is looking and how CNN shifts its attention over time
 			b. Attention + ResNet + RPN (Ruitao)
+			c. 2018. BMVC. Actor-Action Semantic Segmentation withRegion Masks
+			d. 2018. Group Normalization
 
 
 04/17: Third meeting (4 days)

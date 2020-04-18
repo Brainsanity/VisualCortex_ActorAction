@@ -28,12 +28,15 @@ def main(args):
     # optimizer = ###
     model = net(43).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + list(model.fc_obj.parameters()) + list(model.fc_bgd.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    # optimizer = torch.optim.SGD( list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
     # optimizer = torch.optim.SGD( list(model.linear.parameters()) + list(model.bn.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
     # optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear.parameters()) + list(model.bn.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
     # optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear1.parameters()) + list(model.linear2.parameters()) + list(model.linear3.parameters()) + list(model.bn1.parameters()) + list(model.bn2.parameters()) + list(model.bn3.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
 
     # Train the models
+    # STA_imgs = torch.zeros(43,3,train_cfg.crop_size[0],train_cfg.crop_size[1]).to(device)
+    nImages = 0.
     total_step = len(data_loader)
     for epoch in range(args.num_epochs):
         t1 = time.time()
@@ -43,11 +46,16 @@ def main(args):
             images = data[0].to(device)
             labels = data[1].type(torch.FloatTensor).to(device)
 
+            # for iImg in range(images.shape[0]):
+            #     STA_imgs[labels[iImg,:].long(),:,:,:] = STA_imgs[labels[iImg].long(),:,:,:] + 1.
+            #     nImages = nImages+1.
+
             # Forward, backward and optimize
             outputs = model(images)
             # loss = criterion(outputs, labels)
             # loss = - torch.sum( torch.sum( ( nn.LogSoftmax(1)(outputs) * labels ), 1 ) / torch.max( torch.stack( ( torch.sum(labels,1), torch.ones(labels.shape[0]).to(device) ) ), 0 )[0] )
-            loss = torch.sum( (outputs - labels).flatten()**2 )
+            # loss = torch.sum( (outputs - labels).flatten()**2 ) / torch.sum(labels.flatten())
+            loss = -torch.sum( ( labels * torch.log(outputs) + (1.-labels) * torch.log(1.-outputs) ).flatten() )
             # loss = - torch.sum( torch.sum( ( torch.log(outputs) * labels ), 1 ) / torch.max( torch.stack( ( torch.sum(labels,1), torch.ones(labels.shape[0]).to(device) ) ), 0 )[0] )
             # loss = - torch.sum( torch.sum( ( torch.log(outputs) * labels ), 1 ) )
             model.zero_grad()
@@ -66,6 +74,9 @@ def main(args):
         t2 = time.time()
         print(t2 - t1)
         print(outputs)
+        # STA_imgs = STA_imgs / nImages
+        # for i in range(43):
+        #     torchvision.utils.save_image( STA_imgs[i,:,:,:].squeeze(0), 'sta{}.png'.format(i) )
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
