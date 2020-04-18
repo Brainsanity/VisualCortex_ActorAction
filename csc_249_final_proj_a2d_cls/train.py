@@ -1,6 +1,7 @@
 from loader import a2d_dataset
 import argparse
 import torch
+import torchvision
 import torch.nn as nn
 import numpy as np
 import os
@@ -11,6 +12,7 @@ from cfg.deeplab_pretrain_a2d import val as val_cfg
 from cfg.deeplab_pretrain_a2d import test as test_cfg
 from network import net
 import time
+import cv2
 
 # use gpu if cuda can be detected
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -26,17 +28,19 @@ def main(args):
     # model = ###
     # criterion = ###
     # optimizer = ###
-    model = net(43).to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + list(model.fc_obj.parameters()) + list(model.fc_bgd.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
-    # optimizer = torch.optim.SGD( list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
-    # optimizer = torch.optim.SGD( list(model.linear.parameters()) + list(model.bn.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
-    # optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear.parameters()) + list(model.bn.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
-    # optimizer = torch.optim.SGD( list(model.resnet.parameters()) + list(model.linear1.parameters()) + list(model.linear2.parameters()) + list(model.linear3.parameters()) + list(model.bn1.parameters()) + list(model.bn2.parameters()) + list(model.bn3.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    net_name = 'per_class_detection'
+    model = net(43,net_name).to(device)
+    # criterion = nn.CrossEntropyLoss()
+    if net_name == '2_attention_map':
+        optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + list(model.fc_obj.parameters()) + list(model.fc_bgd.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    if net_name == 'per_class_detection':
+        optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.fc.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
 
     # Train the models
-    # STA_imgs = torch.zeros(43,3,train_cfg.crop_size[0],train_cfg.crop_size[1]).to(device)
-    nImages = 0.
+    STA_imgs = torch.zeros(43,3,train_cfg.crop_size[0],train_cfg.crop_size[1]).to(device)
+    nImages = torch.zeros(43,1,1,1).to(device)
+    maxImg = 0.
+    minImg = 0.
     total_step = len(data_loader)
     for epoch in range(args.num_epochs):
         t1 = time.time()
@@ -46,9 +50,14 @@ def main(args):
             images = data[0].to(device)
             labels = data[1].type(torch.FloatTensor).to(device)
 
-            # for iImg in range(images.shape[0]):
-            #     STA_imgs[labels[iImg,:].long(),:,:,:] = STA_imgs[labels[iImg].long(),:,:,:] + 1.
-            #     nImages = nImages+1.
+            for iImg in range(images.shape[0]):
+                if torch.sum(labels[iImg,:]) > 0:
+                    STA_imgs[labels[iImg,:].long()>0,:,:,:] = STA_imgs[labels[iImg].long()>0,:,:,:] + images[iImg,:,:,:]
+                    nImages[labels[iImg,:].long()>0,:,:,:] = nImages[labels[iImg,:].long()>0,:,:,:] + 1.
+            if maxImg < torch.max(images.flatten()):
+                maxImg = torch.max(images.flatten())
+            if minImg > torch.min(images.flatten()):
+                minImg = torch.min(images.flatten())
 
             # Forward, backward and optimize
             outputs = model(images)
@@ -74,9 +83,10 @@ def main(args):
         t2 = time.time()
         print(t2 - t1)
         print(outputs)
-        # STA_imgs = STA_imgs / nImages
-        # for i in range(43):
-        #     torchvision.utils.save_image( STA_imgs[i,:,:,:].squeeze(0), 'sta{}.png'.format(i) )
+        STA_imgs = STA_imgs / (nImages+1e-8)
+        STA_imgs = (STA_imgs - minImg) / (maxImg - minImg)
+        for i in range(43):
+            cv2.imwrite( '../STAImgs0/sta{}.png'.format(i), np.array(STA_imgs[i,:,:,:].squeeze(0).permute(1,2,0)) * 255 )
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')

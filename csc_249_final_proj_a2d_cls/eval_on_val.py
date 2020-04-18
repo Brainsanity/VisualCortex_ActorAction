@@ -25,7 +25,7 @@ def main(args):
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
     
     # define load your model here
-    model = net(43).to(device)#
+    model = net(43,args.net).to(device)#
     model.load_state_dict(torch.load(os.path.join(args.model_path, 'net.ckpt')))
     
     X = np.zeros((data_loader.__len__(), args.num_cls))
@@ -56,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_step', type=int, default=10, help='step size for prining log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
     parser.add_argument('--num_cls', type=int, default=43)
+    parser.add_argument('--net', type=str, default='2_attention_map')
     args = parser.parse_args()
 
 main(args)
