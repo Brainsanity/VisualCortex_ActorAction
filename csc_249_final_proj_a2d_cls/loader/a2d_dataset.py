@@ -184,7 +184,7 @@ class A2DDataset(Dataset):
         gt_load_path = os.path.join(self.gt_dir, vd_frame_idx + '.mat')
         label_orig = h5py.File(gt_load_path,'r')['reS_id']
         label_orig = np.transpose(label_orig)
-        # label = A2DDataset.label_80to43[label_orig]
+        label = label_orig #A2DDataset.label_80to43[label_orig]
 
         # flip
         if hasattr(self.config, 'flip') and self.config.flip:
