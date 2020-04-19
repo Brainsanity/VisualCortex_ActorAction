@@ -48,7 +48,7 @@ def main(args):
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
-            
+
             # Log info
             if i % args.log_step == 0:
                 print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'

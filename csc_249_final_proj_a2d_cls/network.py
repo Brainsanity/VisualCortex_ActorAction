@@ -18,16 +18,12 @@ class net(nn.Module):
         # pretrained faster R-CNN
         model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
         
-        self.pretrained = nn.Sequential(
-                                        model.transform,
-                                        model.backbone,
-                                        model.rpn,
-                                        model.roi_heads.box_roi_pool,
-                                        )
+        self.backbone = model.backbone
+        self.rpn = model.rpn
 
         # to train
-        out_channels = model.bakcbone.out_channels 
-        box_roi_pool = MultiScaleRoIAlign(
+        out_channels = model.backbone.out_channels 
+        self.box_roi_pool = MultiScaleRoIAlign(
                                         featmap_names=['0', '1', '2', '3'],
                                         output_size=7,
                                         sampling_ratio=2
@@ -35,21 +31,20 @@ class net(nn.Module):
 
         resolution = box_roi_pool.output_size[0]
         representation_size = 1024
-        box_head = TwoMLPHead(out_channels* resolution ** 2, representation_size)
+        self.box_head = TwoMLPHead(out_channels* resolution ** 2, representation_size)
 
-        linear = nn.Linear(representation_size, num_classes)
-
-        self.totrain = nn.Sequential(
-                                    box_roi_pool,
-                                    box_head,
-                                    linear
-                                    )
+        self.linear = nn.Linear(representation_size, num_classes)
 
     def forward(self, input):
-        with torch.no_grad():
-            features = self.pretrained(input)
-
-        output = self.totrain(features)
+        image_shapes = [x.shape for x in input]
         
+        with torch.no_grad():
+            features = self.backbone(input)
+            proposals = self.rpn(features)
+
+        box_features = self.box_roi_pool(features, proposals, image_shapes)
+        box_features = self.box_head(box_features)
+        output = self.linear(box_features)
+
         return output
 
