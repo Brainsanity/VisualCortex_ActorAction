@@ -21,6 +21,7 @@ def main(args):
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
+    val_cfg.data_list = args.data_list
     test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path)
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
     
@@ -57,6 +58,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
     parser.add_argument('--num_cls', type=int, default=43)
     parser.add_argument('--net', type=str, default='per_class_detection')
+    parser.add_argument('--data_list', type=str, default='val')
     args = parser.parse_args()
 
 main(args)

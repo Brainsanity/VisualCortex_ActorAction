@@ -18,7 +18,7 @@
 	4. Goal before next meetinng: (2 days)
 		1) Replicate current models to reach the benchmark requirement
 			a. Joint learning of object and action detectors, 2017 (Bin)
-			b. End-to-end joint semantic segmentation of actorsand actions in video, 2018 (Zhexin)
+			b. End-to-end joint semantic segmentation of actors and actions in video, 2018 (Zhexin)
 			c. Resources
 				https://zhuanlan.zhihu.com/p/31426458
 				https://github.com/jwyang/faster-rcnn.pytorch
