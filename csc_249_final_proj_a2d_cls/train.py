@@ -23,9 +23,13 @@ def main(args):
     data_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=4) # you can make changes
 
     # Define model, Loss, and optimizer
-    model = ###
-    criterion = ###
-    optimizer = ###
+    model = net(43)
+    model.to(device)
+    criterion = nn.CrossEntropyLoss()
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     # Train the models
     total_step = len(data_loader)
@@ -43,7 +47,8 @@ def main(args):
             model.zero_grad()
             loss.backward()
             optimizer.step()
-
+            lr_scheduler.step()
+            
             # Log info
             if i % args.log_step == 0:
                 print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
