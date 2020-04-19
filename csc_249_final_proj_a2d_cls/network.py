@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 from torchvision.ops import MultiScaleRoIAlign
+from torchvision.models.detection.image_list import ImageList
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 import torch.autograd as autograd
 from torch.autograd import Variable
@@ -29,18 +30,19 @@ class net(nn.Module):
                                         sampling_ratio=2
                                         )
 
-        resolution = box_roi_pool.output_size[0]
+        resolution = self.box_roi_pool.output_size[0]
         representation_size = 1024
         self.box_head = TwoMLPHead(out_channels* resolution ** 2, representation_size)
 
         self.linear = nn.Linear(representation_size, num_classes)
 
-    def forward(self, input):
-        image_shapes = [x.shape for x in input]
-        
+    def forward(self, images):
+        image_shapes = [x.shape for x in images]
+        images = ImageList(images, image_shapes)
+
         with torch.no_grad():
-            features = self.backbone(input)
-            proposals = self.rpn(features)
+            features = self.backbone(images)
+            proposals = self.rpn(images, features)
 
         box_features = self.box_roi_pool(features, proposals, image_shapes)
         box_features = self.box_head(box_features)
