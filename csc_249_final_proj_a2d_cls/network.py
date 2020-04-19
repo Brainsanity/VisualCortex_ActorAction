@@ -18,12 +18,13 @@ class net(nn.Module):
 
         # pretrained faster R-CNN
         model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-        
+
         self.backbone = model.backbone
         self.rpn = model.rpn
+        self.rpn.training = False
 
         # to train
-        out_channels = model.backbone.out_channels 
+        out_channels = model.backbone.out_channels
         self.box_roi_pool = MultiScaleRoIAlign(
                                         featmap_names=['0', '1', '2', '3'],
                                         output_size=7,
@@ -32,17 +33,17 @@ class net(nn.Module):
 
         resolution = self.box_roi_pool.output_size[0]
         representation_size = 1024
-        self.box_head = TwoMLPHead(out_channels* resolution ** 2, representation_size)
+        self.box_head = TwoMLPHead(out_channels * resolution ** 2, representation_size)
 
         self.linear = nn.Linear(representation_size, num_classes)
 
     def forward(self, images):
-        image_shapes = [x.shape for x in images]
-        images = ImageList(images, image_shapes)
+        image_shapes = [x.shape[1:] for x in images]
+        image_list = ImageList(images, image_shapes)
 
         with torch.no_grad():
             features = self.backbone(images)
-            proposals = self.rpn(images, features)
+            proposals, loss = self.rpn(image_list, features)
 
         box_features = self.box_roi_pool(features, proposals, image_shapes)
         box_features = self.box_head(box_features)
