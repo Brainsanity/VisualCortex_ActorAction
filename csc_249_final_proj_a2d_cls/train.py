@@ -26,11 +26,11 @@ def main(args):
     # Define model, Loss, and optimizer
     model = net(43)
     model.to(device)
-    criterion = lambda x, y: - torch.sum(torch.log(x * y + 1e-7))
+    criterion = lambda x, y: - torch.sum(y * torch.log(x) + (1. - y) * torch.log(1. - x))
     #criterion = lambda x, y: torch.sum(y - y * x + torch.log(1 + torch.exp(-torch.abs(y))))
     #criterion = lambda x, y: - torch.sum(y * torch.log(x) + (1.0 - y) * torch.log(1.0 - x))
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.0001, momentum=0.9, weight_decay=0.0005)
 
     # Train the models
     total_step = len(data_loader)
@@ -45,7 +45,7 @@ def main(args):
             # Forward, backward and optimize
             outputs = model(images)
             loss = criterion(outputs, labels)
-            #pdb.set_trace()
+            pdb.set_trace()
             model.zero_grad()
             loss.backward()
             optimizer.step()
