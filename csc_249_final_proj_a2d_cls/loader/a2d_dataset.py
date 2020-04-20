@@ -182,9 +182,9 @@ class A2DDataset(Dataset):
         image_path = os.path.join(self.img_dir, vd_frame_idx + '.png')
         image = cv2.imread(image_path).astype(np.float32)
         gt_load_path = os.path.join(self.gt_dir, vd_frame_idx + '.mat')
-        label_orig = h5py.File(gt_load_path)['reS_id'].value
+        label_orig = h5py.File(gt_load_path,'r')['reS_id']
         label_orig = np.transpose(label_orig)
-        label = A2DDataset.label_80to43[label_orig]
+        label = label_orig #A2DDataset.label_80to43[label_orig]
 
         # flip
         if hasattr(self.config, 'flip') and self.config.flip:
@@ -234,6 +234,7 @@ class A2DDataset(Dataset):
                                  (0.229, 0.224, 0.225))])
         image = transform(image)
         image = image.contiguous().float()
+        label = A2DDataset.label_80to43[label_orig]
         label = to_cls(label, 43)
         label = torch.from_numpy(label).contiguous().long()
         return image, label
