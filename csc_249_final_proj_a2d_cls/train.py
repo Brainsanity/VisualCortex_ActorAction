@@ -11,6 +11,7 @@ from cfg.deeplab_pretrain_a2d import val as val_cfg
 from cfg.deeplab_pretrain_a2d import test as test_cfg
 from network import net
 import time
+import pdb
 
 # use gpu if cuda can be detected
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -20,16 +21,16 @@ def main(args):
         os.makedirs(args.model_path)
 
     test_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path)
-    data_loader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=4) # you can make changes
+    data_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4) # you can make changes
 
     # Define model, Loss, and optimizer
     model = net(43)
     model.to(device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = lambda x, y: - torch.sum(torch.log(x * y + 1e-7))
+    #criterion = lambda x, y: torch.sum(y - y * x + torch.log(1 + torch.exp(-torch.abs(y))))
+    #criterion = lambda x, y: - torch.sum(y * torch.log(x) + (1.0 - y) * torch.log(1.0 - x))
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
-
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     # Train the models
     total_step = len(data_loader)
@@ -44,10 +45,10 @@ def main(args):
             # Forward, backward and optimize
             outputs = model(images)
             loss = criterion(outputs, labels)
+            #pdb.set_trace()
             model.zero_grad()
             loss.backward()
             optimizer.step()
-            lr_scheduler.step()
 
             # Log info
             if i % args.log_step == 0:
