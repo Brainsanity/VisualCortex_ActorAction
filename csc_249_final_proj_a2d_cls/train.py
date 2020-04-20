@@ -40,6 +40,8 @@ def main(args):
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.fc.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
     if args.net == 'per_class_soft_attention' or args.net == 'per_class_hard_attention':
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + [model.fc_w] + [model.fc_b], lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    if args.net == 'fpn':
+        optimizer = torch.optim.SGD( list(model.box_roi_pool.parameters()) + list(model.box_head.parameters()) + list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
 
     # Train the models
     # STA_imgs = torch.zeros(43,3,train_cfg.crop_size[0],train_cfg.crop_size[1]).to(device)
@@ -91,6 +93,7 @@ def main(args):
         #     cv2.imwrite( '../STAImgs0/sta{}.png'.format(i), np.array(STA_imgs[i,:,:,:].squeeze(0).permute(1,2,0)) * 255 )
 
 def evaluation(model, eval_loader):
+    pass
 
 
 if __name__ == '__main__':
