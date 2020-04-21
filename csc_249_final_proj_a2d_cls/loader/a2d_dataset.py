@@ -198,7 +198,7 @@ class A2DDataset(Dataset):
 
         if self.is3D:
             maxFrame = self.img_nFrames[idx]
-            iFrames = np.arange(0,self.nFrames*self.speed,self.speed).astype(int) - np.floor((self.nFrames-1)/2).astype(int) + iFrame
+            iFrames = ( np.arange(self.nFrames).astype(int) - np.floor((self.nFrames-1)/2).astype(int) ) * self.speed + iFrame
             if iFrames[0] < 1:
                 iFrames = iFrames - iFrames[0] + 1
             if iFrames[-1] > maxFrame:
