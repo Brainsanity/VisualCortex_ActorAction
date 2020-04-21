@@ -211,12 +211,10 @@ class A2DDataset(Dataset):
         for i in range(len(iFrames)):
             img = cv2.imread( os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i])) ).astype(np.float32)
             image_label.append(img)
-            # print( (i, len(image_label), os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i])) ) )
             cv2_INTERP.append(cv2.INTER_LINEAR)
             input_mean.append(self.config.input_mean)
         cv2_INTERP.append(cv2.INTER_NEAREST)
         input_mean.append(A2DDataset.background_label)
-        # print( ( len(iFrames), len(image_label), len(cv2_INTERP) ) )
 
         # image_path = os.path.join(self.img_dir, vd_frame_idx + '.png')
         # image = cv2.imread(image_path).astype(np.float32)
@@ -266,7 +264,6 @@ class A2DDataset(Dataset):
                 else:
                     ValueError('Unknown crop policy: {}'.format(
                         self.config.crop_policy))
-        # print( ( len(iFrames), len(image_label), len(cv2_INTERP) ) )
         if hasattr(self.config, 'rotation') and random.random() < 0.5:
             # image, label = tf.group_rotation(
             #     [image, label], self.config.rotation,
@@ -274,16 +271,13 @@ class A2DDataset(Dataset):
                 image_label, self.config.rotation,
                 cv2_INTERP, #[cv2.INTER_LINEAR, cv2.INTER_NEAREST],
                 input_mean)
-        # print( ( len(iFrames), len(image_label) ) )
         # blur
         if hasattr(self.config,
                    'blur') and self.config.blur and random.random() < 0.5:
             for i in range(len(iFrames)):
-                # print( ('blur: ', len(iFrames), i, len(image_label), os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i]))) )
                 image_label[i] = tf.blur(image_label[i])
 
         for i in range(len(iFrames)):
-            # print( ('resize: ', len(iFrames), i, len(image_label), os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i]))) )
             image_label[i] = cv2.resize(image_label[i], (224, 224))
         transform = transforms.Compose([
             transforms.ToTensor(),
