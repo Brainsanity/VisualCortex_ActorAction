@@ -38,6 +38,26 @@
 
 	3. Goal before next meeting:
 		1) Reach the benchmark with novel models
+		2) Experiments:
+			PCD
+				python train.py --net=per_class_detection --model_path=param_pcd_100ep --num_epochs=100
+				python eval_on_val.py --net=per_class_detection --model_path=param_pcd_100ep --note=100ep
+			
+			PCSA.v1
+				python train.py --net=per_class_soft_attention --version=1 --model_path=param_pcsa_v1_100ep --num_epochs=100
+				python eval_on_val.py --net=per_class_soft_attention --version=1 --model_path=param_pcsa_v1_100ep --note=100ep
+
+			PCSA.v2
+				python train.py --net=per_class_soft_attention --version=2 --model_path=param_pcsa_v2_100ep --num_epochs=100
+				python eval_on_val.py --net=per_class_soft_attention --version=2 --model_path=param_pcsa_v2_100ep --note=100ep
+
+			PCSA.v3
+				python train.py --net=per_class_soft_attention --version=3 --model_path=param_pcsa_v3_100ep --num_epochs=100
+				python eval_on_val.py --net=per_class_soft_attention --version=3 --model_path=param_pcsa_v3_100ep --note=100ep
+
+			PCD3D
+				python train.py --net=R_2plus1_D --model_path=param_R_2plus1_D_100ep --num_epochs=100
+				python eval_on_val.py --net=R_2plus1_D --model_path=param_R_2plus1_D_100ep --note=100ep
 
 
 04/21: Fourth meeting
