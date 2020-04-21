@@ -40,7 +40,8 @@ def main(args):
             nObjs = nObjs + torch.sum(labels,0)
             for i in range(labels.shape[0]):
                 if labels[i,0] > 0:
-                    cv2.imwrite( '../adult_climing/{}_{}.png'.format(batch_idx,i), ( np.array(images[i,:,:,:].squeeze(0).permute(1,2,0).cpu()) - 20. ) / 1200 * 255 )
+                    pass
+                    # cv2.imwrite( '../adult_climing/{}_{}.png'.format(batch_idx,i), ( np.array(images[i,:,:,:].squeeze(0).permute(1,2,0).cpu()) - 20. ) / 1200 * 255 )
             # if batch_idx == 20:
             #     break
 

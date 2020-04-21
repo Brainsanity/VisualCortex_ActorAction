@@ -22,7 +22,10 @@ def main(args):
         os.makedirs(args.model_path)
 
     val_cfg.data_list = args.data_list
-    test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path)
+    if args.net == 'R_2plus1_D':
+        test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path, is3D=True, nFrames=16)
+    else:
+        test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path)
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
     
     # define load your model here

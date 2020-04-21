@@ -21,7 +21,10 @@ def main(args):
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path)
+    if args.net == 'R_2plus1_D':
+        train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path, is3D=True, nFrames=16)
+    else:
+        train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path)
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=4) # you can make changes
 
     eval_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path)
@@ -71,6 +74,9 @@ def main(args):
         t2 = time.time()
         print(t2 - t1)
         evaluation(model,eval_loader)
+
+    torch.save(model.state_dict(), os.path.join(
+                    args.model_path, 'net.ckpt'))
 
 def evaluation(model, eval_loader):
     pass
