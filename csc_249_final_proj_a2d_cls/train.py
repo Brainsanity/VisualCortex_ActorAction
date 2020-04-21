@@ -28,11 +28,8 @@ def main(args):
     eval_loader = DataLoader(eval_dataset, batch_size=4, shuffle=True, num_workers=4)
 
     # Define model, Loss, and optimizer
-    # model = ###
-    # criterion = ###
-    # optimizer = ###
     num_cls = 43
-    model = net(num_cls,args.net).to(device)
+    model = net(num_cls,args.net,args.version).to(device)
     # criterion = nn.CrossEntropyLoss()
     if args.net == '2_attention_map':
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + list(model.fc_obj.parameters()) + list(model.fc_bgd.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
@@ -42,12 +39,10 @@ def main(args):
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + [model.fc_w] + [model.fc_b], lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
     if args.net == 'fpn':
         optimizer = torch.optim.SGD( list(model.box_roi_pool.parameters()) + list(model.box_head.parameters()) + list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+    if args.net == 'R_2plus1_D':
+        optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.fc.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
 
     # Train the models
-    # STA_imgs = torch.zeros(43,3,train_cfg.crop_size[0],train_cfg.crop_size[1]).to(device)
-    # nImages = torch.zeros(43,1,1,1).to(device)
-    # maxImg = 0.
-    # minImg = 0.
     total_step = len(train_loader)
     for epoch in range(args.num_epochs):
         t1 = time.time()
@@ -56,15 +51,6 @@ def main(args):
             # mini-batch
             images = data[0].to(device)
             labels = data[1].type(torch.FloatTensor).to(device)
-
-            # for iImg in range(images.shape[0]):
-            #     if torch.sum(labels[iImg,:]) > 0:
-            #         STA_imgs[labels[iImg,:].long()>0,:,:,:] = STA_imgs[labels[iImg].long()>0,:,:,:] + images[iImg,:,:,:]
-            #         nImages[labels[iImg,:].long()>0,:,:,:] = nImages[labels[iImg,:].long()>0,:,:,:] + 1.
-            # if maxImg < torch.max(images.flatten()):
-            #     maxImg = torch.max(images.flatten())
-            # if minImg > torch.min(images.flatten()):
-            #     minImg = torch.min(images.flatten())
 
             # Forward, backward and optimize
             outputs = model(images)
@@ -84,13 +70,7 @@ def main(args):
                     args.model_path, 'net.ckpt'))
         t2 = time.time()
         print(t2 - t1)
-        print(outputs)
-        print(labels)
         evaluation(model,eval_loader)
-        # STA_imgs = STA_imgs / (nImages+1e-8)
-        # STA_imgs = (STA_imgs - minImg) / (maxImg - minImg)
-        # for i in range(43):
-        #     cv2.imwrite( '../STAImgs0/sta{}.png'.format(i), np.array(STA_imgs[i,:,:,:].squeeze(0).permute(1,2,0)) * 255 )
 
 def evaluation(model, eval_loader):
     pass
@@ -108,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--net', type=str, default='per_class_detection')
+    parser.add_argument('--version', type=str, default=None)
     args = parser.parse_args()
     print(args)
 main(args)

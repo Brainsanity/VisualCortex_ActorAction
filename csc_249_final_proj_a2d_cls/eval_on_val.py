@@ -26,7 +26,7 @@ def main(args):
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
     
     # define load your model here
-    model = net(43,args.net).to(device)#
+    model = net(43,args.net,args.version).to(device)#
     model.load_state_dict(torch.load(os.path.join(args.model_path, 'net.ckpt')))
     
     X = np.zeros((data_loader.__len__(), args.num_cls))
@@ -49,6 +49,14 @@ def main(args):
     R = Recall(X, Y)
     F = F1(X, Y)
     print('Precision: {:.1f} Recall: {:.1f} F1: {:.1f}'.format(100 * P, 100 * R, 100 * F))
+    print(np.sum(X,0))
+    
+    f = open( 'Predict_{}_{}_{}.txt'.format( args.data_list, args.net, args.note ), 'w' )
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+            f.write('{} '.format(X[i,j]))
+        f.write('\n')
+    f.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -59,6 +67,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_cls', type=int, default=43)
     parser.add_argument('--net', type=str, default='per_class_detection')
     parser.add_argument('--data_list', type=str, default='val')
+    parser.add_argument('--note', type=str, default=None)
+    parser.add_argument('--version', type=str, default=None)
     args = parser.parse_args()
 
 main(args)

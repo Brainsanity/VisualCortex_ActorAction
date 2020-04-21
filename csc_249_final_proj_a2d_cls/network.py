@@ -8,41 +8,12 @@ import math
 # from torchvision.models.detection.image_list import ImageList
 # from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 
-class net1(nn.Module):
-    def __init__(self, num_classes):
-        """Load the pretrained ResNet-152 and replace top fc layer."""
-        super(net, self).__init__()
-        resnet = models.resnet152(pretrained=True)
-        modules = list(resnet.children())[:-1]      # delete the last fc layer.
-        # modules = list(resnet.children())[:-2]      # delete the last avgpool layer and fc layer.
-        self.resnet = nn.Sequential(*modules)
-        self.linear = nn.Linear(resnet.fc.in_features, num_classes)
-        # self.linear = nn.Linear(resnet.fc.in_features * resnet.avgpool.kernel_size**2, num_classes)
-        # self.bn = nn.BatchNorm1d(num_classes, momentum=0.01)
-        # self.linear1 = nn.Linear(resnet.fc.in_features, num_classes)
-        # self.linear2 = nn.Linear(resnet.fc.in_features, num_classes)
-        # self.linear3 = nn.Linear(resnet.fc.in_features, num_classes)
-        # self.bn1 = nn.BatchNorm1d(num_classes, momentum=0.01)
-        # self.bn2 = nn.BatchNorm1d(num_classes, momentum=0.01)
-        # self.bn3 = nn.BatchNorm1d(num_classes, momentum=0.01)
-        
-    def forward(self, images):
-        """Extract feature vectors from input images."""
-        with torch.no_grad():
-            features = self.resnet(images)
-        # features = self.resnet(images)
-        features = features.reshape(features.size(0), -1)
-        # features = self.bn(self.linear(features))
-        features = self.linear(features)
-        # features = torch.softmax( self.bn1(self.linear1(features)), 1 ) + torch.softmax( self.bn2(self.linear2(features)), 1 ) + torch.softmax( self.bn3(self.linear3(features)), 1 )
-        return features
-  
-
 class net(nn.Module):
-	def __init__(self, num_classes, name='per_class_detection'):
+	def __init__(self, num_classes, name='per_class_detection', version=None):
 		super(net, self).__init__()
 		self.name = name
 		self.num_classes = num_classes
+		self.version = version
 
 		if name == '2_attention_map':
 			resnet = models.resnet152(pretrained=True)
@@ -65,6 +36,7 @@ class net(nn.Module):
 			self.top = nn.Sequential(resnet.layer4)
 			self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
 			self.fc = nn.Linear( resnet.fc.in_features, num_classes*2 )
+			# self.bn = nn.BatchNorm1d( num_classes*2, momentum=0.01 )		# much worse with this!!!
 
 
 		## Per Class Detection with Soft/Hard Attention Network (PCDAN: PCDSAN/PCDHAN)
@@ -79,16 +51,19 @@ class net(nn.Module):
 			self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
 
 			## v1
-			# self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes*2).cuda() )
-			# self.fc_b = torch.nn.Parameter( torch.zeros(num_classes*2).cuda() )
+			if self.version == '1':
+				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes*2).cuda() )
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes*2).cuda() )
 			
 			## v2
-			# self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes).cuda() )
-			# self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() )
+			if self.version == '2':
+				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes).cuda() )
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() )
 
 			## v3
-			self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes+1).cuda() )
-			self.fc_b = torch.nn.Parameter( torch.zeros(num_classes+1).cuda() ) 
+			if self.version == '3':
+				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes+1).cuda() )
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes+1).cuda() ) 
 
 
 		## Faster FPN
@@ -113,6 +88,15 @@ class net(nn.Module):
 			representation_size = 1024
 			self.box_head = TwoMLPHead(out_channels * resolution ** 2, representation_size)
 			self.linear = nn.Linear(representation_size, num_classes+1)
+
+
+		## 3D Per Class Detection Network (PCDN3D)
+		if name == 'R_2plus1_D':
+			model = models.video.r2plus1d_18(pretrained=True,progress=False)
+			self.base = nn.Sequential(model.stem, model.layer1, model.layer2, model.layer3)
+			self.top = nn.Sequential(model.layer4)
+			self.avgpool = nn.AdaptiveAvgPool3d(output_size=(1, 1, 1))
+			self.fc = nn.Linear( model.fc.in_features, num_classes*2 )
 
 
 
@@ -152,15 +136,18 @@ class net(nn.Module):
 				atns = tmp
 			
 			## v1
-			# outputs = torch.softmax( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1,1) * self.fc_w[:,2*i:2*(i+1)].unsqueeze(0), 1 ) + self.fc_b[i*2:(i+1)*2].unsqueeze(0) for i in range(self.num_classes) ]), 2 ), 1 )[:,0,:]
+			if self.version == '1':
+				outputs = torch.softmax( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1,1) * self.fc_w[:,2*i:2*(i+1)].unsqueeze(0), 1 ) + self.fc_b[i*2:(i+1)*2].unsqueeze(0) for i in range(self.num_classes) ]), 2 ), 1 )[:,0,:]
 			
 			## v2
-			# outputs = torch.sigmoid( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1) * self.fc_w[:,i], 1 ) + self.fc_b[i] for i in range(self.num_classes) ]), 1 ) )
+			if self.version == '2':
+				outputs = torch.sigmoid( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1) * self.fc_w[:,i], 1 ) + self.fc_b[i] for i in range(self.num_classes) ]), 1 ) )
 
 			## v3
 			# add bach normalization???
-			outputs = torch.softmax( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1) * self.fc_w[:,i], 1 ) + self.fc_b[i] for i in range(self.num_classes+1) ]), 1 ), 1 )
-			outputs = outputs[:,:-1] / (outputs[:,:-1] + outputs[:,-1].unsqueeze(1) + 1e-15)
+			if self.version == '3':
+				outputs = torch.softmax( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1) * self.fc_w[:,i], 1 ) + self.fc_b[i] for i in range(self.num_classes+1) ]), 1 ), 1 )
+				outputs = outputs[:,:-1] / (outputs[:,:-1] + outputs[:,-1].unsqueeze(1) + 1e-15)
 
 
 		## fpn
@@ -174,14 +161,25 @@ class net(nn.Module):
 			
 			box_features = self.box_roi_pool(features, proposals, image_shapes)
 			box_features = self.box_head(box_features)
-			scores = torch.softmax( self.linear(box_features), 1 )[:-1]
+			# scores = torch.softmax( self.linear(box_features), 1 )[:-1]
 
-			idx = 0
-			outputs = []
-			for i in range(len(proposals)):
-				outputs.append( torch.sum( scores[ idx : proposals[i].shape[0], : ], 0 ) / proposals[i].shape[0] )
-				idx += proposals[i].shape[0]
-			outputs = torch.stack(outputs, 0)
+			# idx = 0
+			# outputs = []
+			# for i in range(len(proposals)):
+			# 	outputs.append( torch.sum( scores[ idx : proposals[i].shape[0], : ], 0 ) / proposals[i].shape[0] )
+			# 	idx += proposals[i].shape[0]
+			# outputs = torch.stack(outputs, 0)
+
+			roi_detections = self.linear(box_features)
+			roi_detections = self.transform.postprocess(roi_detections, images.image_sizes, original_image_sizes)
+			
+			roi_detections = nn.functional.softmax(roi_detections, 1)
+			outputs = torch.sum(roi_detections, 0) / roi_detections.shape[0]
+
+
+		if self.name == 'R_2plus1_D':
+			base_feat = self.base(images)
+			outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
 
 
 		return outputs
