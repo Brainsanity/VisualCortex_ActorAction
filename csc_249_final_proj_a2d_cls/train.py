@@ -33,6 +33,8 @@ def main(args):
     # Define model, Loss, and optimizer
     num_cls = 43
     model = net(num_cls,args.net,args.version).to(device)
+    if args.cont != 0:
+        model.load_state_dict(torch.load(os.path.join(args.model_path, 'net.ckpt')))
     # criterion = nn.CrossEntropyLoss()
     if args.net == '2_attention_map':
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + list(model.fc_obj.parameters()) + list(model.fc_bgd.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
@@ -96,6 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--net', type=str, default='per_class_detection')
     parser.add_argument('--version', type=str, default=None)
     parser.add_argument('--nframes', type=int, default=16)
+    parser.add_argument('--cont', type=int, default=0)  # whether continue the training based on a former net.ckpt
     args = parser.parse_args()
     print(args)
 main(args)
