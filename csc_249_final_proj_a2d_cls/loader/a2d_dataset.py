@@ -191,7 +191,6 @@ class A2DDataset(Dataset):
         return len(self.img_list)
 
     def __getitem__(self, idx):
-        # vd_frame_idx = self.img_list[idx]
         clipName = self.img_list[idx][:-5]
         iFrame = int(self.img_list[idx][-5:])
 
@@ -216,8 +215,6 @@ class A2DDataset(Dataset):
         cv2_INTERP.append(cv2.INTER_NEAREST)
         input_mean.append(A2DDataset.background_label)
 
-        # image_path = os.path.join(self.img_dir, vd_frame_idx + '.png')
-        # image = cv2.imread(image_path).astype(np.float32)
         gt_load_path = os.path.join(self.gt_dir, clipName + '{:05d}.mat'.format(iFrame))
         label_orig = h5py.File(gt_load_path,'r')['reS_id']
         label_orig = np.transpose(label_orig)
@@ -227,37 +224,28 @@ class A2DDataset(Dataset):
 
         # flip
         if hasattr(self.config, 'flip') and self.config.flip:
-            # image, label = tf.group_random_flip([image, label])
             image_label = tf.group_random_flip(image_label)
 
         if hasattr(self.config, 'crop_policy'):
             target_size = self.config.crop_size
             if self.config.crop_policy == 'none':
                 # resize
-                # image, label = tf.group_rescale([image, label],
                 image_label = tf.group_rescale(image_label,
                                                 #self.config.scale_factor,
                                                 target_size,
-                                                cv2_INTERP) #[cv2.INTER_LINEAR, cv2.INTER_NEAREST])
+                                                cv2_INTERP)
             else:
                 # resize -> crop -> pad 
-                # image, label = tf.group_rescale([image, label],
                 image_label = tf.group_rescale(image_label,
                                                 self.config.scale_factor,
-                                                cv2_INTERP) #[cv2.INTER_LINEAR, cv2.INTER_NEAREST])
+                                                cv2_INTERP)
                 if self.config.crop_policy == 'random':
-                    # image, label = tf.group_random_crop([image, label], target_size)
                     image_label = tf.group_random_crop(image_label, target_size)
-                    # image, label = tf.group_random_pad(
-                    #     [image, label], target_size,
                     image_label = tf.group_random_pad(
                         image_label, target_size,
                         input_mean)
                 elif self.config.crop_policy == 'center':
-                    # image, label = tf.group_center_crop([image, label], target_size)
                     image_label = tf.group_center_crop(image_label, target_size)
-                    # image, label = tf.group_concer_pad(
-                    #     [image, label], target_size,
                     image_label = tf.group_concer_pad(
                         image_label, target_size,
                         input_mean)
@@ -265,11 +253,9 @@ class A2DDataset(Dataset):
                     ValueError('Unknown crop policy: {}'.format(
                         self.config.crop_policy))
         if hasattr(self.config, 'rotation') and random.random() < 0.5:
-            # image, label = tf.group_rotation(
-            #     [image, label], self.config.rotation,
             image_label = tf.group_rotation(
                 image_label, self.config.rotation,
-                cv2_INTERP, #[cv2.INTER_LINEAR, cv2.INTER_NEAREST],
+                cv2_INTERP,
                 input_mean)
         # blur
         if hasattr(self.config,
