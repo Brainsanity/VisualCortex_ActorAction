@@ -156,7 +156,8 @@ class A2DDataset(Dataset):
         'dog-walking',
         'dog-none',
     ])
-    def __init__(self, config, dataset_path, is3D=False, nFrames=16):
+    def __init__(self, config, dataset_path, is3D=False, nFrames=8, speed=2):
+        # speed: for 3D version, extract one frame for each speed frames
         super(A2DDataset, self).__init__()
       
         with open(
@@ -186,6 +187,7 @@ class A2DDataset(Dataset):
                     else:
                         self.img_nFrames.append(int(line))
             self.nFrames = nFrames
+            self.speed = speed
 
     def __len__(self):
         return len(self.img_list)
@@ -196,7 +198,7 @@ class A2DDataset(Dataset):
 
         if self.is3D:
             maxFrame = self.img_nFrames[idx]
-            iFrames = np.arange(self.nFrames).astype(int) - np.floor((self.nFrames-1)/2).astype(int) + iFrame
+            iFrames = np.arange(0,self.nFrames*self.speed,self.speed).astype(int) - np.floor((self.nFrames-1)/2).astype(int) + iFrame
             if iFrames[0] < 1:
                 iFrames = iFrames - iFrames[0] + 1
             if iFrames[-1] > maxFrame:

@@ -23,7 +23,7 @@ def main(args):
 
     val_cfg.data_list = args.data_list
     if args.net == 'R_2plus1_D':
-        test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path, is3D=True, nFrames=args.nframes)
+        test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path, is3D=True, nFrames=args.nframes, speed=args.speed)
     else:
         test_dataset = a2d_dataset.A2DDataset(val_cfg, args.dataset_path)
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
@@ -72,7 +72,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_list', type=str, default='val')
     parser.add_argument('--note', type=str, default=None)
     parser.add_argument('--version', type=str, default=None)
-    parser.add_argument('--nframes', type=int, default=None)
+    parser.add_argument('--nframes', type=int, default=8)
+    parser.add_argument('--speed', type=int, default=2)
     args = parser.parse_args()
 
 main(args)
