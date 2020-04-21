@@ -42,8 +42,9 @@ def main(args):
                 if labels[i,0] > 0:
                     pass
                     # cv2.imwrite( '../adult_climing/{}_{}.png'.format(batch_idx,i), ( np.array(images[i,:,:,:].squeeze(0).permute(1,2,0).cpu()) - 20. ) / 1200 * 255 )
-            # if batch_idx == 20:
-            #     break
+            
+            if batch_idx % 100 == 0:
+                print('batch_idx: {}/{}'.format(batch_idx),len(data_loader))
 
     print(nObjs)
 
