@@ -63,7 +63,13 @@ class net(nn.Module):
 			## v3
 			if self.version == '3':
 				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes+1).cuda() )
-				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes+1).cuda() ) 
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes+1).cuda() )
+
+			## v4
+			if self.version == '4':
+				self.attention = nn.Conv2d( resnet.layer3[-1].conv3.out_channels, 1, kernel_size=3, stride=1, padding=1 )
+				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes).cuda() )
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() ) 
 
 
 		## Faster FPN
@@ -129,11 +135,13 @@ class net(nn.Module):
 			# with torch.no_grad():
 			# 	base_feat = self.base(images)
 			base_feat = self.base(images)
-			atns = torch.softmax( self.attention(base_feat), 1 )
-			if self.name == 'per_class_hard_attention':
-				tmp = atns * 0.
-				tmp[ atns == torch.max(atns,1)[0].unsqueeze(1) ] = 1.
-				atns = tmp
+
+			if self.version != '4':
+				atns = torch.softmax( self.attention(base_feat), 1 )
+				if self.name == 'per_class_hard_attention':
+					tmp = atns * 0.
+					tmp[ atns == torch.max(atns,1)[0].unsqueeze(1) ] = 1.
+					atns = tmp
 			
 			## v1
 			if self.version == '1':
@@ -148,6 +156,11 @@ class net(nn.Module):
 			if self.version == '3':
 				outputs = torch.softmax( torch.stack( tuple([ torch.sum( self.avgpool( self.top( base_feat * atns[:,i,:,:].unsqueeze(1) ) ).view(base_feat.size(0),-1) * self.fc_w[:,i], 1 ) + self.fc_b[i] for i in range(self.num_classes+1) ]), 1 ), 1 )
 				outputs = outputs[:,:-1] / (outputs[:,:-1] + outputs[:,-1].unsqueeze(1) + 1e-15)
+
+			## v4
+			if self.version == '4':
+				atns = torch.sigmoid( self.attention(base_feat) )
+				outputs = torch.sigmoid( torch.sum( self.avgpool( self.top(base_feat*atns) ).view(base_feat.size(0),-1,1) * self.fc_w, 1 ) + self.fc_b )
 
 
 		## fpn

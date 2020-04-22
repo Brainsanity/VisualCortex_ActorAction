@@ -22,7 +22,7 @@ def main(args):
         os.makedirs(args.model_path)
 
     if args.net == 'R_2plus1_D':
-        train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path, is3D=True, nFrames=args.nframes)
+        train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path, is3D=True, nFrames=args.nframes, speed=args.speed)
     else:
         train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path)
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=4) # you can make changes
@@ -33,6 +33,8 @@ def main(args):
     # Define model, Loss, and optimizer
     num_cls = 43
     model = net(num_cls,args.net,args.version).to(device)
+    if args.cont != 0:
+        model.load_state_dict(torch.load(os.path.join(args.model_path, 'net.ckpt')))
     # criterion = nn.CrossEntropyLoss()
     if args.net == '2_attention_map':
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.attention.parameters()) + list(model.fc_obj.parameters()) + list(model.fc_bgd.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
@@ -95,7 +97,9 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--net', type=str, default='per_class_detection')
     parser.add_argument('--version', type=str, default=None)
-    parser.add_argument('--nframes', type=int, default=16)
+    parser.add_argument('--nframes', type=int, default=8)
+    parser.add_argument('--speed', type=int, default=2)
+    parser.add_argument('--cont', type=int, default=0)  # whether continue the training based on a former net.ckpt
     args = parser.parse_args()
     print(args)
 main(args)
