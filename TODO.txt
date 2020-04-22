@@ -58,6 +58,9 @@
 			PCD3D
 				python train.py --net=R_2plus1_D --model_path=param_R_2plus1_D_100ep --num_epochs=100
 				python eval_on_val.py --net=R_2plus1_D --model_path=param_R_2plus1_D_100ep --note=100ep
+				
+				5EP  nframes=16 speed=1: Precision 12.3 Recall 10.0 F1 10.5
+				+5EP nframes=4  speed=2:
 
 
 04/21: Fourth meeting
