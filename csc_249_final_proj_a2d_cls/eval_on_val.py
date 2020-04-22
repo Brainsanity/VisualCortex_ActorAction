@@ -36,6 +36,8 @@ def main(args):
     Y = np.zeros((data_loader.__len__(), args.num_cls))
     print(data_loader.__len__())
     model.eval()
+    Loss = 0.
+    total_step = len(data_loader)
     with torch.no_grad():
         for batch_idx, data in enumerate(data_loader):
             # mini-batch
@@ -43,16 +45,22 @@ def main(args):
             labels = data[1].type(torch.FloatTensor).to(device)
             output = model(images).cpu().detach().numpy()
             target = labels.cpu().detach().numpy()
+            loss = -np.sum( ( target * np.log(output) + (1.-target) * np.log(1.-output) ).flatten() )
             output[output >= 0.5] = 1
             output[output < 0.5] = 0
             X[batch_idx, :] = output
             Y[batch_idx, :] = target
+
+            Loss = Loss + loss
+            if batch_idx % 100 == 0:
+                print('Step [{}/{}], Loss: {:.4f}'
+                      .format(batch_idx, total_step, loss))
         
     P = Precision(X, Y)
     R = Recall(X, Y)
     F = F1(X, Y)
     print('Precision: {:.1f} Recall: {:.1f} F1: {:.1f}'.format(100 * P, 100 * R, 100 * F))
-    print(np.sum(X,0))
+    print('nImg: {} | loss: {:.4f}'.format( np.sum(X,0), Loss/total_step ) )
     
     f = open( 'Predict_{}_{}_{}.txt'.format( args.data_list, args.net, args.note ), 'w' )
     for i in range(X.shape[0]):

@@ -21,6 +21,9 @@ def main(args):
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
+    if train_cfg.crop != 0:
+        train_cfg.crop_policy='random'
+
     if args.net == 'R_2plus1_D':
         train_dataset = a2d_dataset.A2DDataset(train_cfg, args.dataset_path, is3D=True, nFrames=args.nframes, speed=args.speed)
     else:
@@ -100,6 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--nframes', type=int, default=8)
     parser.add_argument('--speed', type=int, default=2)
     parser.add_argument('--cont', type=int, default=0)  # whether continue the training based on a former net.ckpt
+    parser.add_argument('--crop', type=int, default=0)
     args = parser.parse_args()
     print(args)
 main(args)
