@@ -21,7 +21,7 @@ def main(args):
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    if train_cfg.crop != 0:
+    if args.crop != 0:
         train_cfg.crop_policy='random'
 
     if args.net == 'R_2plus1_D':
