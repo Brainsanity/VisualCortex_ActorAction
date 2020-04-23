@@ -31,12 +31,25 @@ class net(nn.Module):
 			# This model converts the multi-object classification problem into a detection problem for each class:
 			#   Theoretically we could build a model to perform detection (or classification for pos./neg.) for each class independently,
 			# however, to save resources, we use the same feature vector extracted from a deep CNN, and then perform detection/classficication for each class based on that same feature vector
-			resnet = models.resnet152(pretrained=True)
-			self.base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1, resnet.layer2, resnet.layer3)
-			self.top = nn.Sequential(resnet.layer4)
-			self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
-			self.fc = nn.Linear( resnet.fc.in_features, num_classes*2 )
-			# self.bn = nn.BatchNorm1d( num_classes*2, momentum=0.01 )		# much worse with this!!!
+			if self.version == None:
+				self.version = '1'
+
+			## v1
+			if self.version == '1':
+				resnet = models.resnet152(pretrained=True)
+				self.base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1, resnet.layer2, resnet.layer3)
+				self.top = nn.Sequential(resnet.layer4)
+				self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
+				self.fc = nn.Linear( resnet.fc.in_features, num_classes*2 )
+				# self.bn = nn.BatchNorm1d( num_classes*2, momentum=0.01 )		# much worse with this!!!
+
+			## v2
+			if self.version == '2':
+				resnet = models.resnet152(pretrained=True)
+				self.base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1, resnet.layer2, resnet.layer3)
+				self.top = nn.Sequential(resnet.layer4)
+				self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
+				self.fc = nn.Linear( resnet.fc.in_features, num_classes )
 
 
 		## Per Class Detection with Soft/Hard Attention Network (PCDAN: PCDSAN/PCDHAN)
@@ -127,7 +140,13 @@ class net(nn.Module):
 			# with torch.no_grad():
 			# 	base_feat = self.base(images)
 			base_feat = self.base(images)
-			outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
+
+			## v1
+			if self.version == '1':
+				outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
+
+			if self.version == '2':
+				outputs = torch.sigmoid( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ) )
 
 
 		## Per Class Detection with Soft/Hard Attention Network (PCDAN: PCDSAN/PCDHAN)

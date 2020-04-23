@@ -210,7 +210,10 @@ class A2DDataset(Dataset):
         cv2_INTERP = list()
         input_mean = list()
         for i in range(len(iFrames)):
-            img = cv2.imread( os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i])) ).astype(np.float32)
+            if hasattr(self.config, 'fix_norm'):
+                img = cv2.imread( os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i])) )
+            else:
+                img = cv2.imread( os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i])) ).astype(np.float32)
             image_label.append(img)
             cv2_INTERP.append(cv2.INTER_LINEAR)
             input_mean.append(self.config.input_mean)

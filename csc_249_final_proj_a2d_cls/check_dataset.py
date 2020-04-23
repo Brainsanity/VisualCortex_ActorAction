@@ -26,10 +26,12 @@ def main(args):
         cfg = val_cfg
     
     cfg.data_list = args.data_list
-
+    if args.crop != 0:
+        cfg.crop_policy='random'
     test_dataset = a2d_dataset.A2DDataset(cfg, args.dataset_path)
     data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
     
+    total_step = len(data_loader)
     nObjs = torch.zeros(43).cuda()
     with torch.no_grad():
         for batch_idx, data in enumerate(data_loader):
@@ -44,7 +46,7 @@ def main(args):
                     # cv2.imwrite( '../adult_climing/{}_{}.png'.format(batch_idx,i), ( np.array(images[i,:,:,:].squeeze(0).permute(1,2,0).cpu()) - 20. ) / 1200 * 255 )
             
             if batch_idx % 100 == 0:
-                print('batch_idx: {}/{}'.format(batch_idx),len(data_loader))
+                print('batch_idx: {}/{}'.format(batch_idx,total_step))
 
     print(nObjs)
 
@@ -53,6 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_path', type=str, default='../A2D', help='a2d dataset')
     parser.add_argument('--data_cfg', type=str, default='val')
     parser.add_argument('--data_list', type=str, default='val')
+    parser.add_argument('--crop', type=int, default=0)
     args = parser.parse_args()
 
 main(args)
