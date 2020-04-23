@@ -82,8 +82,12 @@ class net(nn.Module):
 			if self.version == '4':
 				self.attention = nn.Conv2d( resnet.layer3[-1].conv3.out_channels, 1, kernel_size=3, stride=1, padding=1 )
 				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes).cuda() )
-				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() ) 
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() )
 
+			## v5
+				self.attention = nn.Conv2d( resnet.layer3[-1].conv3.out_channels, 1, kernel_size=3, stride=1, padding=1 )
+				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes*2).cuda() )
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes*2).cuda() )
 
 		## Faster FPN
 		if name == 'fpn':
@@ -180,6 +184,11 @@ class net(nn.Module):
 			if self.version == '4':
 				atns = torch.sigmoid( self.attention(base_feat) )
 				outputs = torch.sigmoid( torch.sum( self.avgpool( self.top(base_feat*atns) ).view(base_feat.size(0),-1,1) * self.fc_w, 1 ) + self.fc_b )
+
+			## v5
+			if self.version == '5':
+				atns = torch.sigmoid( self.attention(base_feat) )
+				outputs = torch.softmax( ( torch.sum( self.avgpool( self.top(base_feat*atns) ).view(base_feat.size(0),-1,1) * self.fc_w, 1 ) + self.fc_b ).reshape(images.shape[0],self.num_classes,2), 2 )[:,:,0]
 
 
 		## fpn
