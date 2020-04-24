@@ -1,14 +1,12 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
-#from torchvision.ops import MultiScaleRoIAlign
-#from torchvision.models.detection.transform import GeneralizedRCNNTransform
-#from torchvision.models.detection.image_list import ImageList
-#from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 import torch.autograd as autograd
-#from torch.jit.annotations import Tuple, List, Dict, Optional
 from torch.autograd import Variable
 import math
+# from torchvision.ops import MultiScaleRoIAlign
+# from torchvision.models.detection.image_list import ImageList
+# from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 
 class net(nn.Module):
 	def __init__(self, num_classes, name='per_class_detection', version=None, get_attention=False):
@@ -34,12 +32,25 @@ class net(nn.Module):
 			# This model converts the multi-object classification problem into a detection problem for each class:
 			#   Theoretically we could build a model to perform detection (or classification for pos./neg.) for each class independently,
 			# however, to save resources, we use the same feature vector extracted from a deep CNN, and then perform detection/classficication for each class based on that same feature vector
-			resnet = models.resnet152(pretrained=True)
-			self.base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1, resnet.layer2, resnet.layer3)
-			self.top = nn.Sequential(resnet.layer4)
-			self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
-			self.fc = nn.Linear( resnet.fc.in_features, num_classes*2 )
-			# self.bn = nn.BatchNorm1d( num_classes*2, momentum=0.01 )		# much worse with this!!!
+			if self.version == None:
+				self.version = '1'
+
+			## v1
+			if self.version == '1':
+				resnet = models.resnet152(pretrained=True)
+				self.base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1, resnet.layer2, resnet.layer3)
+				self.top = nn.Sequential(resnet.layer4)
+				self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
+				self.fc = nn.Linear( resnet.fc.in_features, num_classes*2 )
+				# self.bn = nn.BatchNorm1d( num_classes*2, momentum=0.01 )		# much worse with this!!!
+
+			## v2
+			if self.version == '2':
+				resnet = models.resnet152(pretrained=True)
+				self.base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1, resnet.layer2, resnet.layer3)
+				self.top = nn.Sequential(resnet.layer4)
+				self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
+				self.fc = nn.Linear( resnet.fc.in_features, num_classes )
 
 
 		## Per Class Detection with Soft/Hard Attention Network (PCDAN: PCDSAN/PCDHAN)
@@ -72,12 +83,16 @@ class net(nn.Module):
 			if self.version == '4':
 				self.attention = nn.Conv2d( resnet.layer3[-1].conv3.out_channels, 1, kernel_size=3, stride=1, padding=1 )
 				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes).cuda() )
-				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() ) 
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() )
 
+			## v5
+				self.attention = nn.Conv2d( resnet.layer3[-1].conv3.out_channels, 1, kernel_size=3, stride=1, padding=1 )
+				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes*2).cuda() )
+				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes*2).cuda() )
 
 		## Faster FPN
 		if name == 'fpn':
-      		# pretrained faster R-CNN
+			# pretrained faster R-CNN
 			model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 
 			self.backbone = model.backbone
@@ -130,7 +145,13 @@ class net(nn.Module):
 			# with torch.no_grad():
 			# 	base_feat = self.base(images)
 			base_feat = self.base(images)
-			outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
+
+			## v1
+			if self.version == '1':
+				outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
+
+			if self.version == '2':
+				outputs = torch.sigmoid( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ) )
 
 
 		## Per Class Detection with Soft/Hard Attention Network (PCDAN: PCDSAN/PCDHAN)
@@ -165,6 +186,11 @@ class net(nn.Module):
 				atns = torch.sigmoid( self.attention(base_feat) )
 				outputs = torch.sigmoid( torch.sum( self.avgpool( self.top(base_feat*atns) ).view(base_feat.size(0),-1,1) * self.fc_w, 1 ) + self.fc_b )
 
+			## v5
+			if self.version == '5':
+				atns = torch.sigmoid( self.attention(base_feat) )
+				outputs = torch.softmax( ( torch.sum( self.avgpool( self.top(base_feat*atns) ).view(base_feat.size(0),-1,1) * self.fc_w, 1 ) + self.fc_b ).reshape(images.shape[0],self.num_classes,2), 2 )[:,:,0]
+
 
 		## fpn
 		if self.name == 'fpn':
@@ -197,7 +223,26 @@ class net(nn.Module):
 			base_feat = self.base(images)
 			outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
 
+
 		if self.get_attention and (self.name == 'per_class_soft_attention' or self.name == 'per_class_hard_attention'):
 			return outputs, atns
 		else:
 			return outputs
+
+
+
+class Ensemble():
+	# Weighted (by performance) Voting + Weighted (by performance) Averaging
+	# e.g.: given 0.2, 0.6, 0.61
+	# 		voting:		2/3 = 0.67				=> 1		(this one does not take into account the confidence level of each vote)
+	#		averaging:	1.41/3 = 0.47			=> 0		(this one is heavily affected by extreme value)
+	#		combined:	(0.67+0.47)/2 = 0.57	=> 1		(balance between the other two)
+
+	def __init__(self, pcd_file, pcsa_file, pcd3d_file):
+		netPCD = net( 'per_class_detection' )
+		netPCSA = net( 'per_class_soft_attention', '4' )
+
+
+	def predict(self, images, frames):
+		pass
+
