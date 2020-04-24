@@ -9,11 +9,12 @@ import math
 # from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 
 class net(nn.Module):
-	def __init__(self, num_classes, name='per_class_detection', version=None):
+	def __init__(self, num_classes, name='per_class_detection', version=None, get_attention=False):
 		super(net, self).__init__()
 		self.name = name
 		self.num_classes = num_classes
 		self.version = version
+		self.get_attention = get_attention
 
 		if name == '2_attention_map':
 			resnet = models.resnet152(pretrained=True)
@@ -223,7 +224,10 @@ class net(nn.Module):
 			outputs = torch.softmax( self.fc( self.avgpool( self.top(base_feat) ).view(base_feat.size(0),-1) ).reshape(base_feat.shape[0],self.num_classes,2), 2 )[:,:,0]
 
 
-		return outputs
+		if self.get_attention and (self.name == 'per_class_soft_attention' or self.name == 'per_class_hard_attention'):
+			return outputs, atns
+		else:
+			return outputs
 
 
 
@@ -241,3 +245,4 @@ class Ensemble():
 
 	def predict(self, images, frames):
 		pass
+

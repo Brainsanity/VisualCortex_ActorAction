@@ -13,6 +13,7 @@ from cfg.deeplab_pretrain_a2d import test as test_cfg
 from network import net
 import time
 import cv2
+import pdb
 
 # use gpu if cuda can be detected
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -57,6 +58,7 @@ def main(args):
         optimizer = torch.optim.SGD( list(model.box_roi_pool.parameters()) + list(model.box_head.parameters()) + list(model.linear.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
     if args.net == 'R_2plus1_D':
         optimizer = torch.optim.SGD( list(model.base.parameters()) + list(model.top.parameters()) + list(model.fc.parameters()), lr=0.00001, momentum=train_cfg.optimizer['args']['momentum'], dampening=0, weight_decay=train_cfg.optimizer['args']['weight_decay'], nesterov=False )
+
 
     # Train the models
     total_step = len(train_loader)
