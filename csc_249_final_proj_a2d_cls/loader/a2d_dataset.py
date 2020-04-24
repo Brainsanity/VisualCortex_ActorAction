@@ -156,7 +156,8 @@ class A2DDataset(Dataset):
         'dog-walking',
         'dog-none',
     ])
-    def __init__(self, config, dataset_path):
+    def __init__(self, config, dataset_path, is3D=False, nFrames=8, speed=2):
+        # speed: for 3D version, extract one frame for each speed frames
         super(A2DDataset, self).__init__()
       
         with open(
@@ -173,67 +174,111 @@ class A2DDataset(Dataset):
         self.gt_dir = os.path.join(dataset_path, 'Annotations/mat')
         self.config = config
         self.class_names = [A2DDataset.class_names[cls] for cls in A2DDataset.valid_cls]
+        self.is3D = is3D
+        self.nFrames = 1
+
+        if is3D:
+            self.img_nFrames = []
+            with open( os.path.join(dataset_path, 'list', config.data_list + '_nFrames.txt') ) as f:
+                self.img_nFrames = []
+                for line in f:
+                    if line[-1] == '\n':
+                        self.img_nFrames.append(int(line[:-1]))
+                    else:
+                        self.img_nFrames.append(int(line))
+            self.nFrames = nFrames
+            self.speed = speed
 
     def __len__(self):
         return len(self.img_list)
 
     def __getitem__(self, idx):
-        vd_frame_idx = self.img_list[idx]
-        image_path = os.path.join(self.img_dir, vd_frame_idx + '.png')
-        image = cv2.imread(image_path).astype(np.float32)
-        gt_load_path = os.path.join(self.gt_dir, vd_frame_idx + '.mat')
-        label_orig = h5py.File(gt_load_path)['reS_id'].value
+        clipName = self.img_list[idx][:-5]
+        iFrame = int(self.img_list[idx][-5:])
+
+        if self.is3D:
+            maxFrame = self.img_nFrames[idx]
+            iFrames = ( np.arange(self.nFrames).astype(int) - np.floor((self.nFrames-1)/2).astype(int) ) * self.speed + iFrame
+            if iFrames[0] < 1:
+                iFrames = iFrames - iFrames[0] + 1
+            if iFrames[-1] > maxFrame:
+                iFrames = iFrames - iFrames[-1] + maxFrame
+        else:
+            iFrames = np.ones(1,int)*iFrame
+
+        image_label = list()
+        cv2_INTERP = list()
+        input_mean = list()
+        for i in range(len(iFrames)):
+            img = cv2.imread( os.path.join(self.img_dir, clipName, '{:05d}.png'.format(iFrames[i])) ).astype(np.float32)
+            image_label.append(img)
+            cv2_INTERP.append(cv2.INTER_LINEAR)
+            input_mean.append(self.config.input_mean)
+        cv2_INTERP.append(cv2.INTER_NEAREST)
+        input_mean.append(A2DDataset.background_label)
+
+        gt_load_path = os.path.join(self.gt_dir, clipName + '{:05d}.mat'.format(iFrame))
+        label_orig = h5py.File(gt_load_path,'r')['reS_id']
         label_orig = np.transpose(label_orig)
-        label = A2DDataset.label_80to43[label_orig]
+        label = label_orig #A2DDataset.label_80to43[label_orig]
+
+        image_label.append(label)
 
         # flip
         if hasattr(self.config, 'flip') and self.config.flip:
-            image, label = tf.group_random_flip([image, label])
+            image_label = tf.group_random_flip(image_label)
 
         if hasattr(self.config, 'crop_policy'):
             target_size = self.config.crop_size
             if self.config.crop_policy == 'none':
                 # resize
-                image, label = tf.group_rescale([image, label],
+                image_label = tf.group_rescale(image_label,
                                                 #self.config.scale_factor,
                                                 target_size,
-                                                [cv2.INTER_LINEAR, cv2.INTER_NEAREST])
+                                                cv2_INTERP)
             else:
                 # resize -> crop -> pad 
-                image, label = tf.group_rescale([image, label],
+                image_label = tf.group_rescale(image_label,
                                                 self.config.scale_factor,
-                                                [cv2.INTER_LINEAR, cv2.INTER_NEAREST])
+                                                cv2_INTERP)
                 if self.config.crop_policy == 'random':
-                    image, label = tf.group_random_crop([image, label], target_size)
-                    image, label = tf.group_random_pad(
-                        [image, label], target_size,
-                        [self.config.input_mean, A2DDataset.background_label])
+                    image_label = tf.group_random_crop(image_label, target_size)
+                    image_label = tf.group_random_pad(
+                        image_label, target_size,
+                        input_mean)
                 elif self.config.crop_policy == 'center':
-                    image, label = tf.group_center_crop([image, label], target_size)
-                    image, label = tf.group_concer_pad(
-                        [image, label], target_size,
-                        [self.config.input_mean, A2DDataset.background_label])
+                    image_label = tf.group_center_crop(image_label, target_size)
+                    image_label = tf.group_concer_pad(
+                        image_label, target_size,
+                        input_mean)
                 else:
                     ValueError('Unknown crop policy: {}'.format(
                         self.config.crop_policy))
-
         if hasattr(self.config, 'rotation') and random.random() < 0.5:
-            image, label = tf.group_rotation(
-                [image, label], self.config.rotation,
-                [cv2.INTER_LINEAR, cv2.INTER_NEAREST],
-                [self.config.input_mean, A2DDataset.background_label])
+            image_label = tf.group_rotation(
+                image_label, self.config.rotation,
+                cv2_INTERP,
+                input_mean)
         # blur
         if hasattr(self.config,
                    'blur') and self.config.blur and random.random() < 0.5:
-            image = tf.blur(image)
+            for i in range(len(iFrames)):
+                image_label[i] = tf.blur(image_label[i])
 
-        image = cv2.resize(image, (224, 224))
+        for i in range(len(iFrames)):
+            image_label[i] = cv2.resize(image_label[i], (224, 224))
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406),
                                  (0.229, 0.224, 0.225))])
-        image = transform(image)
-        image = image.contiguous().float()
+        for i in range(len(iFrames)):
+            image_label[i] = transform(image_label[i])
+            image_label[i] = image_label[i].contiguous().float()
+        if self.is3D:
+            image = torch.stack( image_label[:-1], 1 )
+        else:
+            image = image_label[0]
+        label = A2DDataset.label_80to43[image_label[-1]]
         label = to_cls(label, 43)
         label = torch.from_numpy(label).contiguous().long()
         return image, label
