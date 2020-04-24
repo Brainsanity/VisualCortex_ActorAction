@@ -1,12 +1,14 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
+#from torchvision.ops import MultiScaleRoIAlign
+#from torchvision.models.detection.transform import GeneralizedRCNNTransform
+#from torchvision.models.detection.image_list import ImageList
+#from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 import torch.autograd as autograd
+#from torch.jit.annotations import Tuple, List, Dict, Optional
 from torch.autograd import Variable
 import math
-# from torchvision.ops import MultiScaleRoIAlign
-# from torchvision.models.detection.image_list import ImageList
-# from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 
 class net(nn.Module):
 	def __init__(self, num_classes, name='per_class_detection', version=None):
@@ -74,7 +76,7 @@ class net(nn.Module):
 
 		## Faster FPN
 		if name == 'fpn':
-			# pretrained faster R-CNN
+      # pretrained faster R-CNN
 			model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 
 			self.backbone = model.backbone
@@ -94,7 +96,12 @@ class net(nn.Module):
 			representation_size = 1024
 			self.box_head = TwoMLPHead(out_channels * resolution ** 2, representation_size)
 			self.linear = nn.Linear(representation_size, num_classes+1)
-
+      image_mean = [0.495, 0.456, 0.406]
+      image_std = [0.229, 0.224, 0.225]
+      max_size = 1333
+      min_size = 800
+      self.transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
+      
 
 		## 3D Per Class Detection Network (PCDN3D)
 		if name == 'R_2plus1_D':
@@ -196,5 +203,3 @@ class net(nn.Module):
 
 
 		return outputs
-
-
