@@ -226,3 +226,18 @@ class net(nn.Module):
 		return outputs
 
 
+
+class Ensemble():
+	# Weighted (by performance) Voting + Weighted (by performance) Averaging
+	# e.g.: given 0.2, 0.6, 0.61
+	# 		voting:		2/3 = 0.67				=> 1		(this one does not take into account the confidence level of each vote)
+	#		averaging:	1.41/3 = 0.47			=> 0		(this one is heavily affected by extreme value)
+	#		combined:	(0.67+0.47)/2 = 0.57	=> 1		(balance between the other two)
+
+	def __init__(self, pcd_file, pcsa_file, pcd3d_file):
+		netPCD = net( 'per_class_detection' )
+		netPCSA = net( 'per_class_soft_attention', '4' )
+
+
+	def predict(self, images, frames):
+		pass

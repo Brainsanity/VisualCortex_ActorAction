@@ -81,7 +81,7 @@ def main(args):
         f = open( 'Predict_{}_{}_{}.txt'.format( args.data_list, args.net, args.note ), 'w' )
         for i in range(X.shape[0]):
             for j in range(X.shape[1]):
-                f.write('{} '.format(X[i,j]))
+                f.write('{:d} '.format(X[i,j]))
             f.write('\n')
         f.close()
 
