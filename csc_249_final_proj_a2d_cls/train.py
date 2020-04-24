@@ -70,7 +70,7 @@ def main(args):
 
             # Forward, backward and optimize
             outputs = model(images)
-            loss = -torch.sum( ( labels * torch.log(outputs) + (1.-labels) * torch.log(1.-outputs) ).flatten() )
+            loss = -torch.sum( ( labels * torch.log(outputs+1e-15) + (1.-labels) * torch.log(1.-outputs+1e-15) ).flatten() )
             model.zero_grad()
             loss.backward()
             optimizer.step()

@@ -85,6 +85,7 @@ class net(nn.Module):
 				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes).cuda() )
 
 			## v5
+			if self.version == '5':
 				self.attention = nn.Conv2d( resnet.layer3[-1].conv3.out_channels, 1, kernel_size=3, stride=1, padding=1 )
 				self.fc_w = torch.nn.Parameter( torch.zeros(resnet.fc.in_features, num_classes*2).cuda() )
 				self.fc_b = torch.nn.Parameter( torch.zeros(num_classes*2).cuda() )
@@ -234,10 +235,34 @@ class Ensemble():
 	#		averaging:	1.41/3 = 0.47			=> 0		(this one is heavily affected by extreme value)
 	#		combined:	(0.67+0.47)/2 = 0.57	=> 1		(balance between the other two)
 
-	def __init__(self, pcd_file, pcsa_file, pcd3d_file):
-		netPCD = net( 'per_class_detection' )
-		netPCSA = net( 'per_class_soft_attention', '4' )
+	def __init__(self, device, num_classes, pcd_file, pcsa_file, pcd3d_file, pcd_f1=100, pcsa_f1=100, pcd3d_f1=100):
+		self.pcd_f1 = pcd_f1
+		self.pcsa_f1 = pcsa_f1
+		self.pcd3d_f1 = pcd3d_f1
 
+		self.netPCD = net( num_classes, 'per_class_detection' ).to(device)
+		self.netPCSA = net( num_classes, 'per_class_soft_attention', '4' ).to(device)
+		self.netPCD3D = net( num_classes, 'R_2plus1_D' ).to(device)
 
-	def predict(self, images, frames):
-		pass
+		self.netPCD.load_state_dict(torch.load(pcd_file))
+		self.netPCSA.load_state_dict(torch.load(pcsa_file))
+		self.netPCD3D.load_state_dict(torch.load(pcd3d_file))
+
+		self.netPCD.eval()
+		self.netPCSA.eval()
+		self.netPCD3D.eval()
+
+	def predict(self, images, iFrame):
+		imgs = torch.stack( tuple([ images[i,:,iFrame[i],:,:] for i in range(iFrame.shape[0]) ]), 0 )
+		pcdPredict = self.netPCD(imgs)
+		pcsaPredict = self.netPCSA(imgs)
+		pcd3dPredict = self.netPCD3D(images)
+
+		s = self.pcd_f1 + self.pcsa_f1 + self.pcd3d_f1
+		w1 = self.pcd_f1 / s
+		w2 = self.pcsa_f1 / s
+		w3 = self.pcd3d_f1 / s
+		voting = w1 * (pcdPredict >= 0.5).int() + w2 * (pcsaPredict >= 0.5).int() + w3 * (pcd3dPredict >= 0.5).int()
+		averaging = w1*pcdPredict + w2*pcsaPredict + w3*pcd3dPredict
+
+		return (voting + averaging) / 2

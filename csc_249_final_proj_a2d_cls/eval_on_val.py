@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from cfg.deeplab_pretrain_a2d import train as train_cfg
 from cfg.deeplab_pretrain_a2d import val as val_cfg
 from cfg.deeplab_pretrain_a2d import test as test_cfg
-from network import net
+from network import net, Ensemble
 import time
 from utils.eval_metrics import Precision, Recall, F1
 
@@ -36,20 +36,24 @@ def main(args):
     if args.fix_norm != None:
         cfg.fix_norm = 1
 
-    if args.net == 'R_2plus1_D':
+    if args.net == 'R_2plus1_D' or args.net == 'ensemble':
         test_dataset = a2d_dataset.A2DDataset(cfg, args.dataset_path, is3D=True, nFrames=args.nframes, speed=args.speed)
     else:
         test_dataset = a2d_dataset.A2DDataset(cfg, args.dataset_path)
-    data_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1)
+    data_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=1)
     
     # define load your model here
-    model = net(43,args.net,args.version).to(device)#
-    model.load_state_dict(torch.load(os.path.join(args.model_path, args.load_name + '.ckpt')))
+    if args.net != 'ensemble':
+        model = net(43, args.net,args.version).to(device)#
+        model.load_state_dict(torch.load(os.path.join(args.model_path, args.load_name + '.ckpt')))
+    else:
+        model = Ensemble(device, 43, args.pcd_file, args.pcsa_file, args.pcd3d_file, args.pcd_f1, args.pcsa_f1, args.pcd3d_f1)
     
     X = np.zeros((data_loader.__len__(), args.num_cls))
     Y = np.zeros((data_loader.__len__(), args.num_cls))
     print(data_loader.__len__())
-    model.eval()
+    if args.net != 'ensemble':
+        model.eval()
     Loss = 0.
     total_step = len(data_loader)
     with torch.no_grad():
@@ -57,7 +61,10 @@ def main(args):
             # mini-batch
             images = data[0].to(device)
             labels = data[1].type(torch.FloatTensor).to(device)
-            output = model(images).cpu().detach().numpy()
+            if args.net != 'ensemble':
+                output = model(images).cpu().detach().numpy()
+            else:
+                output = model.predict(images,data[2]).cpu().detach().numpy()
             target = labels.cpu().detach().numpy()
             loss = -np.sum( ( target * np.log(output+1e-12) + (1.-target) * np.log(1.-output+1e-12) ).flatten() )
             output[output >= 0.5] = 1
@@ -75,21 +82,31 @@ def main(args):
     F = F1(X, Y)
     print('Precision: {:.1f} Recall: {:.1f} F1: {:.1f}'.format(100 * P, 100 * R, 100 * F))
     print('nImg: {} | loss: {:.4f}'.format( np.sum(X,0), Loss/total_step ) )
-    print('Evaluation finished for {} on {}'.format( os.path.join(args.model_path, args.load_name + '.ckpt'), args.data_list ))
+    if args.net == 'ensemble':
+        print('Evaluation finished for {} on {}'.format( args.pcd_file + ' ' + args.pcsa_file + ' ' + args.pcd3d_file, args.data_list ))
+    else:
+        print('Evaluation finished for {} on {}'.format( os.path.join(args.model_path, args.load_name + '.ckpt'), args.data_list ))
 
     if args.note != None:
         f = open( 'Predict_{}_{}_{}.txt'.format( args.data_list, args.net, args.note ), 'w' )
         for i in range(X.shape[0]):
             for j in range(X.shape[1]):
-                f.write('{:d} '.format(X[i,j]))
+                f.write('{:.0f} '.format(X[i,j]))
             f.write('\n')
         f.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str, default='models/', help='path for saving trained models')
+    parser.add_argument('--pcd_file', type=str, default='models/net.ckpt')
+    parser.add_argument('--pcsa_file', type=str, default='models/net.ckpt')
+    parser.add_argument('--pcd3d_file', type=str, default='models/net.ckpt')
+    parser.add_argument('--pcd_f1', type=float, default=100)
+    parser.add_argument('--pcsa_f1', type=float, default=100)
+    parser.add_argument('--pcd3d_f1', type=float, default=100)
     parser.add_argument('--load_name', type=str, default='net')
     parser.add_argument('--dataset_path', type=str, default='../A2D', help='a2d dataset')
+    parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--log_step', type=int, default=10, help='step size for prining log info')
     parser.add_argument('--save_step', type=int, default=1000, help='step size for saving trained models')
     parser.add_argument('--num_cls', type=int, default=43)

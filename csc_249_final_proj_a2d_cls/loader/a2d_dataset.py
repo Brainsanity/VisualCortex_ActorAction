@@ -284,7 +284,7 @@ class A2DDataset(Dataset):
         label = A2DDataset.label_80to43[image_label[-1]]
         label = to_cls(label, 43)
         label = torch.from_numpy(label).contiguous().long()
-        return image, label
+        return image, label, np.sum(iFrames-iFrame < 0) # index of the questing image in the returned image array
 
 class A2DDataset_test(Dataset):
 
