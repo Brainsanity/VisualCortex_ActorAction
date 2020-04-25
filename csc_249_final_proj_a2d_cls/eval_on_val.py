@@ -12,6 +12,7 @@ from cfg.deeplab_pretrain_a2d import test as test_cfg
 from network import net, Ensemble
 import time
 from utils.eval_metrics import Precision, Recall, F1
+import pickle
 
 # use gpu if cuda can be detected
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -36,6 +37,8 @@ def main(args):
     if args.fix_norm != None:
         cfg.fix_norm = 1
 
+    if cfg.data_list == 'test':
+        cfg.isTest = True
     if args.net == 'R_2plus1_D' or args.net == 'ensemble':
         test_dataset = a2d_dataset.A2DDataset(cfg, args.dataset_path, is3D=True, nFrames=args.nframes, speed=args.speed)
     else:
@@ -76,7 +79,7 @@ def main(args):
             if batch_idx % 100 == 0:
                 print('Step [{}/{}], Loss: {:.4f}'
                       .format(batch_idx, total_step, loss))
-        
+    
     P = Precision(X, Y)
     R = Recall(X, Y)
     F = F1(X, Y)
@@ -94,6 +97,8 @@ def main(args):
                 f.write('{:.0f} '.format(X[i,j]))
             f.write('\n')
         f.close()
+    with open('Predict_{}_{}_{}.pkl'.format( args.data_list, args.net, args.note ), 'wb') as f:
+        pickle.dump(X, f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

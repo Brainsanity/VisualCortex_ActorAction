@@ -220,10 +220,13 @@ class A2DDataset(Dataset):
         cv2_INTERP.append(cv2.INTER_NEAREST)
         input_mean.append(A2DDataset.background_label)
 
-        gt_load_path = os.path.join(self.gt_dir, clipName + '{:05d}.mat'.format(iFrame))
-        label_orig = h5py.File(gt_load_path,'r')['reS_id']
-        label_orig = np.transpose(label_orig)
-        label = label_orig #A2DDataset.label_80to43[label_orig]
+        if hasattr(self.config, 'isTest') and self.config.isTest == True:
+            label = np.zeros((img.shape[0],img.shape[1]),int)
+        else:
+            gt_load_path = os.path.join(self.gt_dir, clipName + '{:05d}.mat'.format(iFrame))
+            label_orig = h5py.File(gt_load_path,'r')['reS_id']
+            label_orig = np.transpose(label_orig)
+            label = label_orig #A2DDataset.label_80to43[label_orig]
 
         image_label.append(label)
 

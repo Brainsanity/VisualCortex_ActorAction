@@ -99,7 +99,7 @@
 ## crop
 echo "scratch => net_crop_5ep ..."
 python train.py --net=per_class_detection --model_path=param_pcd_100ep --num_epochs=5 --crop=1 --save_name=net_crop_5ep &&
-python eval_on_val.py --net=per_class_detection --model_path=param_pcd_100ep --load_name=net_crop_5ep --note=None 		 --data_list=val	2>&1 | tee -a print_pcd_v1.txt &&
+python eval_on_val.py --net=per_class_detection --model_path=param_pcd_100ep --load_name=net_crop_70ep --note=None 		 --data_list=val	2>&1 | tee -a print_pcd_v1.txt &&
 # python eval_on_val.py --net=per_class_detection --model_path=param_pcd_100ep --load_name=net_crop_5ep --note=None --data_list=train 		2>&1 | tee -a print_pcd_v1.txt &&
 
 echo "net_crop_5ep => net_crop_10ep ..."
